@@ -225,14 +225,15 @@ class AgentsUsageIndicator extends PanelMenu.Button {
         }
         card.add_child(header);
 
+        const windows = Array.isArray(provider.windows) ? provider.windows : [];
         if (provider.error_message) {
+            const isCached = windows.length > 0;
             card.add_child(new St.Label({
-                text: provider.error_message,
-                style_class: 'apb-error-text',
+                text: isCached ? `Cached · ${provider.error_message}` : provider.error_message,
+                style_class: isCached ? 'apb-window-meta' : 'apb-error-text',
             }));
         }
 
-        const windows = Array.isArray(provider.windows) ? provider.windows : [];
         if (windows.length === 0 && !provider.error_message) {
             card.add_child(new St.Label({
                 text: 'No quota data available.',

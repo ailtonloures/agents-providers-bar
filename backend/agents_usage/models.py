@@ -120,7 +120,7 @@ class UsageReport:
         ok_values = [
             p.max_used_percent
             for p in self.providers
-            if p.windows and p.status in ("ok", "rate_limited")
+            if p.windows and p.status in ("ok", "rate_limited", "unavailable")
         ]
         return max(ok_values) if ok_values else 0.0
 

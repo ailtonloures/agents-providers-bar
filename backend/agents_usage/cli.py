@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Callable
 
 from .cache import DEFAULT_TTL_SECONDS, UsageCache
-from .models import ProviderUsage, UsageReport
+from .models import ProviderUsage, UsageReport, format_reset_in
 from .providers import fetch_antigravity_usage, fetch_claude_usage
 
 PROVIDERS: dict[str, Callable[[], ProviderUsage]] = {
@@ -34,11 +34,14 @@ def collect_provider(
         cache.set(fresh)
         return fresh
 
-    if fresh.status in ("rate_limited", "error"):
+    if fresh.status in ("rate_limited", "error", "unavailable"):
         stale = cache.get(name, allow_stale=True)
         if stale is not None and stale.windows:
             stale.status = fresh.status
             stale.error_message = fresh.error_message
+            for win in stale.windows:
+                if win.resets_at:
+                    win.reset_in_human = format_reset_in(win.resets_at)
             return stale
 
     return fresh
