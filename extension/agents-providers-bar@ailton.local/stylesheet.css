@@ -1,0 +1,132 @@
+/* Agents Providers Usage Bar - GNOME Shell 46 Stylesheet */
+
+.apb-panel-icon {
+  icon-size: 16px;
+  padding: 0 2px;
+}
+
+.apb-icon-ok {
+  color: #4ade80;
+}
+
+.apb-icon-warn {
+  color: #fbbf24;
+}
+
+.apb-icon-crit {
+  color: #f87171;
+}
+
+.apb-icon-muted {
+  color: #9ca3af;
+}
+
+.popup-menu-content.apb-popup-box {
+  padding: 0;
+}
+
+.popup-menu-item.apb-menu-item {
+  padding: 0;
+}
+
+.apb-menu-container {
+  min-width: 310px;
+  padding: 10px 12px;
+  spacing: 10px;
+}
+
+.apb-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.apb-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+
+.apb-updated {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-right: 8px;
+}
+
+.apb-refresh-btn {
+  padding: 4px 6px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.apb-refresh-btn:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.apb-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  spacing: 8px;
+}
+
+.apb-card-header {
+  spacing: 6px;
+}
+
+.apb-provider-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+.apb-plan-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #d1d5db;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.apb-window-row {
+  spacing: 4px;
+}
+
+.apb-window-label {
+  font-size: 11.5px;
+  color: #e5e7eb;
+}
+
+.apb-window-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.apb-bar-track {
+  height: 7px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.apb-bar-fill {
+  height: 7px;
+  border-radius: 4px;
+}
+
+.apb-fill-ok {
+  background-color: #22c55e;
+}
+
+.apb-fill-warn {
+  background-color: #f59e0b;
+}
+
+.apb-fill-crit {
+  background-color: #ef4444;
+}
+
+.apb-error-text {
+  font-size: 11px;
+  color: #fca5a5;
+}

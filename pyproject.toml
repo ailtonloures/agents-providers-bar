@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agents-providers-bar"
+version = "0.1.0"
+description = "Ubuntu GNOME top-bar usage monitor for Claude Code and Antigravity (Google AI)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+agents-usage = "agents_usage.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["backend"]

@@ -1,0 +1,8 @@
+{
+  "uuid": "agents-providers-bar@ailton.local",
+  "name": "Agents Providers Usage Bar",
+  "description": "Monitor Claude Code and Antigravity (Google AI) subscription usage from the GNOME top bar.",
+  "shell-version": ["46"],
+  "version": 1,
+  "url": "https://github.com/local/agents-providers-bar"
+}
