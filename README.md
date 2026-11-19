@@ -1,59 +1,59 @@
 # Agents Providers Usage Bar
 
-Extensão para a barra superior do **GNOME Shell 46** (Ubuntu) acompanhada de uma **CLI em Python** (`agents-usage`) para monitorar em tempo real as cotas de uso das assinaturas do **Claude Code** e do **Antigravity (Google AI)**.
+A **GNOME Shell 46** (Ubuntu) top-bar extension paired with a **Python CLI** (`agents-usage`) for real-time monitoring of **Claude Code** and **Antigravity (Google AI)** subscription usage quotas.
 
 <p align="center">
-  <img src="assets/image.png" alt="Extensão Agents Providers Usage Bar exibindo o popup de cotas do Claude Code e Antigravity no GNOME Shell" />
+  <img src="assets/image.png" alt="Agents Providers Usage Bar extension showing the Claude Code and Antigravity quota popup in GNOME Shell" />
 </p>
 
-## O que é o projeto
+## Overview
 
-O projeto resolve o problema de acompanhar limites de uso e janelas de reset de assistentes de IA diretamente do desktop Linux, sem precisar abrir terminais ou painéis web. Ele é composto por duas camadas desacopladas:
+This project solves the problem of tracking AI assistant usage limits and reset windows directly from the Linux desktop without opening terminals or web dashboards. It consists of two decoupled layers:
 
-1. **Backend / CLI (`agents-usage`)**: coleta as cotas dos provedores em paralelo, normaliza os dados em um formato único, aplica cache local e expõe o resultado em texto ou JSON.
-2. **Extensão GNOME Shell (`agents-providers-bar@ailton.local`)**: consome o JSON da CLI de forma assíncrona, exibe um ícone discreto na barra superior com indicação de severidade por cor e renderiza um menu popup com cards detalhados por provedor.
+1. **Backend / CLI (`agents-usage`)**: queries providers in parallel, normalizes the data into a unified format, applies local caching, and outputs the result as plain text or JSON.
+2. **GNOME Shell Extension (`agents-providers-bar@ailton.local`)**: asynchronously consumes the CLI JSON output, displays a discreet top-bar icon with color-coded severity, and renders a popup menu with detailed per-provider cards.
 
-## Funcionalidades
+## Features
 
-- **Indicador de status na barra superior**: ícone simbólico que muda de cor conforme o maior percentual de uso entre os provedores ativos:
-  - **Verde**: `< 60%`
-  - **Âmbar**: `60% – 84.9%`
-  - **Vermelho**: `>= 85%`
-  - **Cinza (muted)**: sem dados disponíveis ou erro
-- **Menu popup detalhado**:
-  - Cards individuais por provedor com nome, plano (`plan_name`) e status.
-  - Barras de progresso por janela de cota (ex.: `5h Session`, `Weekly (7d)`, buckets de modelos do Antigravity).
-  - Contagem regressiva formatada para o próximo reset (ex.: `2h 15m`, `3d 4h`).
-- **Atualização automática e manual**:
-  - Atualiza automaticamente a cada **5 minutos** (`300s`).
-  - Botão de **Refresh** no cabeçalho do popup para forçar consulta sem cache (`--no-cache`).
-- **Cache local e tolerância a falhas**:
-  - Cache armazenado em `~/.cache/agents-providers-bar/usage.json` (TTL padrão de `300s`), gravado de forma atômica.
-  - Em caso de *rate limit* (`429`) ou erro momentâneo, faz fallback para o último snapshot em cache (*stale*) preservando os dados de janelas anteriores.
+- **Top-bar status indicator**: symbolic icon that changes color based on the highest usage percentage among active providers:
+  - **Green**: `< 60%`
+  - **Amber**: `60% – 84.9%`
+  - **Red**: `>= 85%`
+  - **Gray (muted)**: no data available or error
+- **Detailed popup menu**:
+  - Individual provider cards with name, plan (`plan_name`), and status.
+  - Progress bars per quota window (e.g., `5h Session`, `Weekly (7d)`, Antigravity model buckets).
+  - Formatted countdown to the next reset (e.g., `2h 15m`, `3d 4h`).
+- **Automatic and manual refresh**:
+  - Automatically refreshes every **5 minutes** (`300s`).
+  - **Refresh** button in the popup header to force a fresh query bypassing the cache (`--no-cache`).
+- **Local cache and fault tolerance**:
+  - Cache stored at `~/.cache/agents-providers-bar/usage.json` (default TTL of `300s`), written atomically.
+  - On *rate limit* (`429`) or transient errors, falls back to the last cached snapshot (*stale*) while preserving previous window data.
 
-## Como foi feito (Arquitetura)
+## Architecture
 
-### Backend Python (`backend/agents_usage/`)
+### Python Backend (`backend/agents_usage/`)
 
-- **Zero dependências externas**: utiliza apenas a biblioteca padrão do Python (`>= 3.10`), como `urllib.request`, `json`, `argparse`, `dataclasses`, `concurrent.futures` e `pathlib`. O projeto é empacotado com `pyproject.toml` e gerenciado via `uv`.
-- **`cli.py`**: ponto de entrada `agents-usage`. Executa a coleta dos provedores em paralelo usando `ThreadPoolExecutor`, coordena leitura/escrita no cache e imprime a saída formatada ou em JSON (`--json`).
-- **`models.py`**: define os modelos `QuotaWindow`, `ProviderUsage` e `UsageReport`, além da formatação de tempo restante até o reset (`format_reset_in`).
-- **`cache.py`**: implementa `UsageCache` com escrita atômica via arquivo `.tmp` + `os.replace`.
+- **Zero external dependencies**: uses only the Python standard library (`>= 3.10`), including `urllib.request`, `json`, `argparse`, `dataclasses`, `concurrent.futures`, and `pathlib`. Packaged with `pyproject.toml` and managed via `uv`.
+- **`cli.py`**: `agents-usage` entrypoint. Runs provider collection in parallel using `ThreadPoolExecutor`, coordinates cache reads/writes, and prints formatted or JSON (`--json`) output.
+- **`models.py`**: defines `QuotaWindow`, `ProviderUsage`, and `UsageReport`, as well as remaining reset time formatting (`format_reset_in`).
+- **`cache.py`**: implements `UsageCache` with atomic writes via a `.tmp` file + `os.replace`.
 - **`providers/claude.py`**:
-  - Lê o token OAuth e o tipo de assinatura em `~/.claude/.credentials.json`.
-  - Consulta `https://api.anthropic.com/api/oauth/usage` e converte os buckets (`five_hour`, `seven_day`, `seven_day_sonnet`, `seven_day_opus`) em `QuotaWindow`.
+  - Reads the OAuth token and subscription type from `~/.claude/.credentials.json`.
+  - Queries `https://api.anthropic.com/api/oauth/usage` and converts buckets (`five_hour`, `seven_day`, `seven_day_sonnet`, `seven_day_opus`) into `QuotaWindow` entries.
 - **`providers/antigravity.py`**:
-  - Descobre instâncias locais do daemon do Antigravity em `~/.gemini/antigravity/daemon/hub_*.json`, priorizando processos cujo `pid` está ativo.
-  - Faz chamada RPC local (`POST http://127.0.0.1:<httpPort>/exa.language_server_pb.LanguageServerService/GetUserStatus`) usando o header `X-Codeium-Csrf-Token`.
-  - Agrupa os modelos retornados em buckets (como `Gemini 4 (Neon / Hydrogen)`, `Gemini 4 Argon`, `Gemini Flash`, `Claude (Antigravity)`, `GPT-OSS`) considerando o maior uso por bucket.
+  - Discovers local Antigravity daemon instances in `~/.gemini/antigravity/daemon/hub_*.json`, prioritizing processes with an active `pid`.
+  - Makes a local RPC call (`POST http://127.0.0.1:<httpPort>/exa.language_server_pb.LanguageServerService/GetUserStatus`) using the `X-Codeium-Csrf-Token` header.
+  - Groups returned models into buckets (such as `Gemini 4 (Neon / Hydrogen)`, `Gemini 4 Argon`, `Gemini Flash`, `Claude (Antigravity)`, `GPT-OSS`) using the highest usage per bucket.
 
-### Extensão GNOME Shell (`extension/agents-providers-bar@ailton.local/`)
+### GNOME Shell Extension (`extension/agents-providers-bar@ailton.local/`)
 
-- Escrita em **GJS (ESM)** para GNOME Shell 46 (`metadata.json` com `"shell-version": ["46"]`).
-- **`extension.js`**: registra `AgentsUsageIndicator` (`PanelMenu.Button`), executa `~/.local/bin/agents-usage --json` (com fallback para `agents-usage` no `PATH`) via `Gio.Subprocess` assíncrono e constrói dinamicamente os cards com widgets `St`.
-- **`stylesheet.css`** e **`icons/provider-bar-symbolic.svg`**: estilização do popup, barras de progresso e ícone simbólico da barra superior.
+- Written in **GJS (ESM)** for GNOME Shell 46 (`metadata.json` with `"shell-version": ["46"]`).
+- **`extension.js`**: registers `AgentsUsageIndicator` (`PanelMenu.Button`), runs `~/.local/bin/agents-usage --json` (falling back to `agents-usage` on `PATH`) via asynchronous `Gio.Subprocess`, and dynamically builds cards with `St` widgets.
+- **`stylesheet.css`** and **`icons/provider-bar-symbolic.svg`**: styling for the popup, progress bars, and top-bar symbolic icon.
 
-## Estrutura do Repositório
+## Repository Structure
 
 ```text
 .
@@ -61,132 +61,132 @@ O projeto resolve o problema de acompanhar limites de uso e janelas de reset de 
 ├── pyproject.toml
 ├── uv.lock
 ├── assets/
-│   └── image.png               # Captura de tela da extensão em funcionamento
+│   └── image.png               # Screenshot of the running extension
 ├── backend/
 │   ├── agents_usage/
-│   │   ├── cli.py              # Entrypoint CLI e orquestração paralela
-│   │   ├── cache.py            # Cache JSON local com escrita atômica
-│   │   ├── models.py           # Modelos QuotaWindow, ProviderUsage, UsageReport
+│   │   ├── cli.py              # CLI entrypoint and parallel orchestration
+│   │   ├── cache.py            # Local JSON cache with atomic writes
+│   │   ├── models.py           # QuotaWindow, ProviderUsage, UsageReport models
 │   │   └── providers/
-│   │       ├── claude.py       # Coletor OAuth do Claude Code
-│   │       └── antigravity.py  # Coletor RPC local do Antigravity
+│   │       ├── claude.py       # Claude Code OAuth collector
+│   │       └── antigravity.py  # Antigravity local RPC collector
 │   └── tests/
 │       ├── test_antigravity.py
 │       ├── test_cache.py
 │       └── test_claude.py
 ├── extension/
 │   └── agents-providers-bar@ailton.local/
-│       ├── extension.js        # Indicador e popup do GNOME Shell 46
-│       ├── metadata.json       # Metadados da extensão
-│       ├── stylesheet.css      # Estilos do popup e ícone
+│       ├── extension.js        # GNOME Shell 46 indicator and popup
+│       ├── metadata.json       # Extension metadata
+│       ├── stylesheet.css      # Popup and icon styles
 │       └── icons/
 │           └── provider-bar-symbolic.svg
 └── scripts/
-    ├── install.sh              # Instala CLI + symlink da extensão
-    └── uninstall.sh            # Remove CLI e desabilita/remove extensão
+    ├── install.sh              # Installs CLI + extension symlink
+    └── uninstall.sh            # Removes CLI and disables/removes extension
 ```
 
-## Pré-requisitos
+## Prerequisites
 
-- Ubuntu com **GNOME Shell 46**
+- Ubuntu with **GNOME Shell 46**
 - **Python >= 3.10**
-- **`uv`** (recomendado para rodar testes e comandos via `Makefile`)
-- **Node.js** (usado apenas no `make lint` para validação sintática de `extension.js`)
-- Para dados reais dos provedores:
-  - **Claude Code**: autenticado localmente (`~/.claude/.credentials.json` gerado pelo comando `claude`).
-  - **Antigravity**: daemon local em execução (iniciado pelo `agy` ou Antigravity IDE).
+- **`uv`** (recommended for running tests and commands via `Makefile`)
+- **Node.js** (used only in `make lint` for syntax validation of `extension.js`)
+- For live provider data:
+  - **Claude Code**: locally authenticated (`~/.claude/.credentials.json` generated by the `claude` command).
+  - **Antigravity**: local daemon running (started by `agy` or the Antigravity IDE).
 
-## Como Instalar
+## Installation
 
-Execute o script de instalação (ou via `Makefile`):
+Run the installation script (or via `Makefile`):
 
 ```bash
 ./scripts/install.sh
-# ou
+# or
 make install
 ```
 
-O script realiza as seguintes ações:
-1. Cria o executável wrapper em `~/.local/bin/agents-usage` apontando para `backend/` com `PYTHONPATH`.
-2. Cria um link simbólico da extensão em `~/.local/share/gnome-shell/extensions/agents-providers-bar@ailton.local`.
-3. Tenta habilitar a extensão via `gnome-extensions enable agents-providers-bar@ailton.local`.
+The script performs the following actions:
+1. Creates the wrapper executable at `~/.local/bin/agents-usage` pointing to `backend/` with `PYTHONPATH`.
+2. Creates a symlink for the extension at `~/.local/share/gnome-shell/extensions/agents-providers-bar@ailton.local`.
+3. Attempts to enable the extension via `gnome-extensions enable agents-providers-bar@ailton.local`.
 
-> **Nota sobre Wayland:** se o GNOME Shell não reconhecer a extensão imediatamente após a instalação, encerre a sessão (logout) e entre novamente, depois execute:
+> **Note on Wayland:** if GNOME Shell does not recognize the extension immediately after installation, log out and log back in, then run:
 > ```bash
 > gnome-extensions enable agents-providers-bar@ailton.local
 > ```
 
-### Como Desinstalar
+### Uninstallation
 
 ```bash
 ./scripts/uninstall.sh
-# ou
+# or
 make uninstall
 ```
 
-## Comandos
+## Commands
 
 ### CLI (`agents-usage`)
 
 ```bash
-# Saída formatada para terminal (usa cache de 300s por padrão)
+# Terminal-formatted output (uses 300s cache by default)
 agents-usage
 
-# Saída em JSON ignorando o cache
+# JSON output bypassing the cache
 agents-usage --json --no-cache
 
-# Filtrar por um provedor específico
+# Filter by a specific provider
 agents-usage --provider claude
 agents-usage --provider antigravity
 
-# Definir TTL customizado do cache (em segundos)
+# Set a custom cache TTL (in seconds)
 agents-usage --ttl 60
 ```
 
-### Atalhos do `Makefile`
+### `Makefile` Shortcuts
 
-| Comando | Descrição |
+| Command | Description |
 | :--- | :--- |
-| `make run` | Executa `uv run agents-usage --no-cache` |
-| `make json` | Executa `uv run agents-usage --json --no-cache` |
-| `make test` | Executa a suíte de testes unitários com `uv` |
-| `make lint` | Valida sintaxe JS (`node --check`) e JSON (`metadata.json`) |
-| `make check` | Executa `lint` e `test` |
-| `make install` | Executa `./scripts/install.sh` |
-| `make uninstall` | Executa `./scripts/uninstall.sh` |
+| `make run` | Runs `uv run agents-usage --no-cache` |
+| `make json` | Runs `uv run agents-usage --json --no-cache` |
+| `make test` | Runs the unit test suite with `uv` |
+| `make lint` | Validates JS syntax (`node --check`) and JSON (`metadata.json`) |
+| `make check` | Runs `lint` and `test` |
+| `make install` | Runs `./scripts/install.sh` |
+| `make uninstall` | Runs `./scripts/uninstall.sh` |
 
-## Como Testar
+## Testing
 
-### 1. Verificação completa (Lint + Testes Unitários)
+### 1. Full Check (Lint + Unit Tests)
 
 ```bash
 make check
 ```
 
-Ou executando individualmente:
+Or run them individually:
 
 ```bash
-# Apenas testes unitários (via uv)
+# Unit tests only (via uv)
 make test
 
-# Apenas testes unitários (sem uv, usando python3 do sistema)
+# Unit tests only (without uv, using system python3)
 PYTHONPATH=backend python3 -m unittest discover -s backend/tests -v
 
-# Apenas lint da extensão (JS + metadata.json)
+# Extension lint only (JS + metadata.json)
 make lint
 ```
 
-### 2. Testar o backend localmente
+### 2. Test the Backend Locally
 
 ```bash
 make json
 ```
 
-Verifique se o JSON retornado contém `overall_max_used_percent` e a lista `providers` com os status esperados (`ok`, `unauthenticated`, `unavailable`, etc.).
+Verify that the returned JSON contains `overall_max_used_percent` and the `providers` list with the expected statuses (`ok`, `unauthenticated`, `unavailable`, etc.).
 
-### 3. Depurar a extensão no GNOME Shell
+### 3. Debug the GNOME Shell Extension
 
-Para acompanhar logs ou erros da extensão em tempo real no Ubuntu:
+To follow extension logs or errors in real time on Ubuntu:
 
 ```bash
 journalctl -f /usr/bin/gnome-shell
